@@ -1,0 +1,192 @@
+<script type="text/javascript">
+    RED.nodes.registerType('joplin-config',{
+        category: 'config',
+        color: '#a6bbcf',
+        defaults: {
+            hostname: {value:"localhost", required:true},
+            port: {value: 41184, required: true, validate: RED.validators.number()}
+        },
+        icon: "file.png",
+        label: function() {
+            return `Joplin@${this.hostname}:${this.port}`;
+        },
+        credentials:{
+            apiKey: {type:"text", required:true}
+        }
+    });
+
+</script>
+
+
+<script type="text/html" data-template-name="joplin-config">
+    <div class="form-row">
+        <label for="node-config-input-hostname"><i class="icon-tag"></i> Joplin hostname</label>
+        <input type="text" id="node-config-input-hostname" placeholder="localhost">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-port"><i class="icon-tag"></i> API Port</label>
+        <input type="text" id="node-config-input-port" placeholder="41184">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-apiKey"><i class="icon-key"></i> API Key</label>
+        <input type="text" id="node-config-input-apiKey" placeholder="key">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="joplin-config">
+    <p>Configuration for node-red joplin nodes.</p>
+
+    <p><b>Joplin hostname</b> is the hostname of the machine that you're running joplin on. In 99% of cases this is going to be <b><u>localhost</u></b>.</p>
+
+    <p><b>API Port</b></p> is the TCP port that the web clipper is running on. By default this is 41184 but it might be different - check your joplin webclipper settings to find out the correct value</p>
+
+    <p><b>API Token</b></p> is the long token that you copy and paste from Joplin into the web clipper browser plugin to allow it to communicate with your joplin app. This can be found in the web clipper settings under <i>Advanced options</i><p/>
+</script>
+
+<script type="text/javascript">
+
+    RED.nodes.registerType('joplin-search',{
+        category: 'Joplin',
+        color: '#a6bbcf',
+        defaults: {
+            server: {value:"", type:"joplin-config"},
+            query: {value:""}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "joplin512.png",
+        label: function() {
+            return this.name||"joplin-search";
+        },
+    });
+
+</script>
+
+<script type="text/html" data-template-name="joplin-search">
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-tag"></i> Joplin API Location</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-query"><i class="icon-tag"></i> Search query</label>
+        <input type="text" id="node-input-query" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="joplin-search">
+
+</script>
+
+
+
+<script type="text/javascript">
+
+    RED.nodes.registerType('joplin-get',{
+        category: 'Joplin',
+        color: '#a6bbcf',
+        defaults: {
+            server: {value:"", type:"joplin-config"},
+            id: {value:""},
+            resourceType: {value:"notes"},
+            fields: {type:"string",value:""}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "joplin512.png",
+        label: function() {
+            return this.name||"joplin-get";
+        },
+    });
+
+</script>
+
+<script type="text/html" data-template-name="joplin-get">
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-tag"></i> Joplin API Location</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-id"><i class="icon-tag"></i> Resource ID</label>
+        <input type="text" id="node-input-id" placeholder="ID">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-resourceType"><i class="icon-tag"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceType" placeholder="Name">
+    </div>
+
+
+    <div class="form-row">
+        <label for="node-input-fields"><i class="icon-tag"></i> Fields</label>
+        <input type="text" id="node-input-fields" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="joplin-get">
+
+</script>
+
+<script type="text/javascript">
+
+RED.nodes.registerType('joplin-create',{
+        category: 'Joplin',
+        color: '#a6bbcf',
+        defaults: {
+            server: {value:"", type:"joplin-config"},
+            title: {value:""},
+            noteBody: {value:""},
+        },
+        inputs:1,
+        outputs:1,
+        icon: "joplin512.png",
+        label: function() {
+            return this.name||"joplin-create";
+        },
+        oneditprepare: function(){
+            console.log(this.noteBody);
+            this.editor = RED.editor.createEditor({
+                id: 'node-input-noteBody-editor',
+                mode: 'ace/mode/text',
+                value: this.noteBody 
+            });
+        },
+        oneditsave: function(){
+            //$('#node-input-nodeBody').val(this.editor.getValue());
+            this.noteBody = this.editor.getValue();
+            this.editor.destroy();
+            delete this.editor;
+        },
+        oneditcancel: function() {
+            this.editor.destroy();
+            delete this.editor;
+        }
+    });
+    
+</script>
+
+
+<script type="text/html" data-template-name="joplin-create">
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-tag"></i> Joplin API Location</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-title"><i class="icon-tag"></i> Note title</label>
+        <input type="text" id="node-input-title" placeholder="Name">
+    </div>
+
+
+    <div class="form-row">
+        <label for="node-input-noteBody-editor"><i class="icon-tag"></i> Note title</label>
+        <div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-noteBody-editor"></div>
+
+    </div>
+</script>
+
+<script type="text/html" data-help-name="joplin-create">
+
+</script>
+

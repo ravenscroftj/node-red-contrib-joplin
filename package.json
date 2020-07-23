@@ -1,0 +1,31 @@
+{
+  "name": "node-red-contrib-joplin",
+  "version": "0.0.1",
+  "description": "Nodes for interacting with Joplin API",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravenscroftj/node-red-contrib-joplin.git"
+  },
+  "keywords": [
+    "node",
+    "red",
+    "joplin",
+    "api"
+  ],
+  "author": "James Ravenscroft",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ravenscroftj/node-red-contrib-joplin/issues"
+  },
+  "homepage": "https://github.com/ravenscroftj/node-red-contrib-joplin#readme",
+  "node-red": {
+    "nodes": {
+      "joplin": "joplin.js"
+    }
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "bent": "^7.3.7"
+  }
+}
