@@ -50,13 +50,14 @@
         color: '#a6bbcf',
         defaults: {
             server: {value:"", type:"joplin-config"},
-            query: {value:""}
+            query: {value:""},
+            fields: {value:""}
         },
         inputs:1,
         outputs:1,
         icon: "joplin512.png",
         label: function() {
-            return this.name||"joplin-search";
+            return this.query ? `Search joplin for '${this.query.substring(0,16)}'...` : "Joplin Search";
         },
     });
 
@@ -72,11 +73,53 @@
         <label for="node-input-query"><i class="icon-tag"></i> Search query</label>
         <input type="text" id="node-input-query" placeholder="Name">
     </div>
+
+    <div class="form-row">
+        <label for="node-input-fields"><i class="icon-tag"></i> Fields</label>
+        <input type="text" id="node-input-fields" placeholder="Name">
+    </div>
 </script>
 
 <script type="text/html" data-help-name="joplin-search">
+<p>Search Joplin REST API using a query</p>
+
+<h3>Inputs</h3>
+<dl class="message-properties">
+    <dt>server <span class="property-type">joplin-config</span></dt>
+    <dd>The Joplin REST API server against which to run the search</dd>
+    <dt>query <span class="property-type">string</span></dt>
+    <dd>The text with which to search Joplin. The node first checks <code>msg.payload.query</code> and then tries 
+    the query defined in the editor interface. If neither is provided (i.e. there's no query at all) then an error is produced.</dd>
+    <dt>fields <span class="property-type">string</span></dt>
+    <dd>A comma separated list of note fields that the query should contain.
+        The full list of properties each note may contain is provided <a target="_blank" href="https://joplinapp.org/api/#properties">here</a>.
+
+        By default leaving this blank will return all note metadata but omit <code>body</code> which contains the markdown for the note.
+
+        The node will prefer <code>msg.payload.fields</code> and then the value set in the editor.
+    </dd>
+</dl>
+
+<h3>Outputs</h3>
+
+<dl class="message-properties">
+    <dt>msg.payload <span class="property-type">array</span></dt>
+    <dd>An array of notes returned by the Joplin search API. 
+        The full list of properties each object can contain is provided <a target="_blank" href="https://joplinapp.org/api/#properties">here</a></dd>
+</dl>
+
+<h3>Detail</h3>
+<p>This node uses the Joplin search endpoint as documented <a href="https://joplinapp.org/api/#searching" target="_blank">here</a>.
+Searching behaviour (i.e. allowed values for query) is fully documented <a href="https://joplinapp.org/#searching" target="_blank">here</a></p>
 
 </script>
+
+
+<!--------------------------------------------------
+ * Joplin GET node - for retrieval of specific resources by ID
+ *
+ *
+---------------------------------------------------->
 
 
 
@@ -87,7 +130,7 @@
         color: '#a6bbcf',
         defaults: {
             server: {value:"", type:"joplin-config"},
-            id: {value:""},
+            resourceId: {value:""},
             resourceType: {value:"notes"},
             fields: {type:"string",value:""}
         },
@@ -108,8 +151,8 @@
     </div>
 
     <div class="form-row">
-        <label for="node-input-id"><i class="icon-tag"></i> Resource ID</label>
-        <input type="text" id="node-input-id" placeholder="ID">
+        <label for="node-input-resourceId"><i class="icon-tag"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="ID">
     </div>
 
     <div class="form-row">
@@ -125,8 +168,148 @@
 </script>
 
 <script type="text/html" data-help-name="joplin-get">
+    <p>Get a Joplin resource by its ID from the REST API</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>server <span class="property-type">joplin-config</span></dt>
+        <dd>The Joplin REST API server to retrieve the resource from</dd>
+        <dt>resourceId <span class="property-type">string</span></dt>
+        <dd>Resource ID to retrieve. The node first checks <code>msg.payload.resourceId</code> and then tries 
+        the ID defined in the editor interface. If neither is provided (i.e. there's no resource ID set at all) then an error is produced.</dd>
+        <dt>resourceType <span class="property-type">string</span></dt>
+        <dd>The type of resource to retrieve. E.g. you may be looking for a <code>tag</code> or a <code>resource</code> (file attachment). 
+            The node first checks <code>msg.payload.resourceType</code> and then uses the editor value. Default value is <code>notes</code>.
+            Supported resources are <code>notes</code>, <code>folders</code> (this is the internal name of notebook), <code>resources</code> (file attachments etc),
+            and <code>tags</code>.
+        </dd>
+        <dt>fields <span class="property-type">string</span></dt>
+        
+        <dd>A comma separated list of note fields that the returned object should contain.
+            The full list of properties each note may contain is provided <a target="_blank" href="https://joplinapp.org/api/#properties">here</a>.
+    
+            By default leaving this blank will return all note metadata but omit <code>body</code> which contains the markdown for the note.
+    
+            The node will prefer <code>msg.payload.fields</code> and then the value set in the editor.
+        </dd>
+    </dl>
+    
+    <h3>Outputs</h3>
+    
+    <dl class="message-properties">
+        <dt>msg.payload <span class="property-type">object</span></dt>
+        <dd>A single object containing the resource that has the matching ID.</dd>   
+    </dl>
+    
+    <h3>Detail</h3>
+    <p>This node uses the Joplin get endpoints as documented <a href="https://joplinapp.org/api/" target="_blank">here</a> to retrieve objects from the joplin database.</p>
+    
+</script>
+
+<!--------------------------------------------------
+ * Joplin get-by-parent for retrieving resources from containers
+ *
+ *
+---------------------------------------------------->
+
+
+<script type="text/javascript">
+
+    RED.nodes.registerType('joplin-getby-parent',{
+        category: 'Joplin',
+        color: '#a6bbcf',
+        defaults: {
+            server: {value:"", type:"joplin-config"},
+            resourceParentId: {value:""},
+            resourceParentType: {value:"folders"},
+            resourceType: {value: "notes"},
+            fields: {type:"string",value:""}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "joplin512.png",
+        label: function() {
+            return this.resourceParentId ? `Get resources from ${this.resourceParentId.substring(0,8)}...` : "Get resources by parent ID";
+        },
+    });
 
 </script>
+
+<script type="text/html" data-template-name="joplin-getby-parent">
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-tag"></i> Joplin API Location</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-resourceParentId"><i class="icon-tag"></i> Resource Parent ID</label>
+        <input type="text" id="node-input-resourceParentId" placeholder="ID">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-resourceParentType"><i class="icon-tag"></i> Resource Parent Type</label>
+        <input type="text" id="node-input-resourceParentType" placeholder="Name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-resourceType"><i class="icon-tag"></i> Resource Type</label>
+        <input type="text" id="node-input-resourceType" placeholder="Name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-fields"><i class="icon-tag"></i> Fields</label>
+        <input type="text" id="node-input-fields" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="joplin-getby-parent">
+    <p>Get the contents of a container by its ID from the REST API</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>server <span class="property-type">joplin-config</span></dt>
+        <dd>The Joplin REST API server to retrieve the resource from</dd>
+        <dt>resourceParentId <span class="property-type">string</span></dt>
+        <dd>The ID of the container you want to retrieve. The node first checks <code>msg.payload.resourceParentId</code> and then tries 
+        the ID defined in the editor interface. If neither is provided (i.e. there's no resource parent ID set at all) then an error is produced.</dd>
+        <dt>resourceParentType <span class="property-type">string</span></dt>
+        <dd>The type of the container resource to retrieve. E.g. you may want to list all items in a particular <code>folder</code> or attachments or tags within a <code>note</code>
+        </dd>
+        <dt>resourceType <span class="property-type">string</span></dt>
+        <dd>The type of objects within the container that you're interested in E.g. you may want to get the <code>resource</code> or <code>tag</code> objects associated with a specific note.
+        </dd>
+        <dt>fields <span class="property-type">string</span></dt>
+        
+        <dd>A comma separated list of note fields that the returned objects should contain.
+            The full list of properties each note may contain is provided <a target="_blank" href="https://joplinapp.org/api/#properties">here</a>.
+    
+            By default leaving this blank will return all note metadata but omit <code>body</code> which contains the markdown for the note.
+    
+            The node will prefer <code>msg.payload.fields</code> and then the value set in the editor.
+        </dd>
+    </dl>
+    
+    <h3>Outputs</h3>
+    
+    <dl class="message-properties">
+        <dt>msg.payload <span class="property-type">array</span></dt>
+        <dd>A list of relevant objects contained within the parent resource.</dd>   
+    </dl>
+    
+    <h3>Detail</h3>
+    <p>This node uses the Joplin get endpoints as documented <a href="https://joplinapp.org/api/" target="_blank">here</a> to retrieve objects from inside containers within joplin database.</p>
+    <p>Currently it supports <code>folder</code>, <code>note</code> and <code>tag</code> as parent objects and <code>tags</code>, <code>notes</code> and <code>resources</code> as child objects.</p>
+    <p>This node does not work with folder/subfolder (notebook/sub-notebook) relationships. Please use the <code>children</code> attribute of a specific notebook for this purpose as documented <a href="https://joplinapp.org/api/#get-folders" target="_blank">here</a></p>
+    
+</script>
+
+
+<!--------------------------------------------------
+ * Joplin Create node - for creation of new joplin resources
+ *
+ *
+---------------------------------------------------->
+
 
 <script type="text/javascript">
 
@@ -180,13 +363,43 @@ RED.nodes.registerType('joplin-create',{
 
 
     <div class="form-row">
-        <label for="node-input-noteBody-editor"><i class="icon-tag"></i> Note title</label>
+        <label for="node-input-noteBody-editor"><i class="icon-tag"></i> Note body</label>
         <div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-noteBody-editor"></div>
 
     </div>
 </script>
 
 <script type="text/html" data-help-name="joplin-create">
+    <p>Create a new note via the Joplin REST API</p>
 
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>server <span class="property-type">joplin-config</span></dt>
+        <dd>The Joplin REST API server against which to run the search</dd>
+        <dt>title <span class="property-type">string</span></dt>
+        <dd>
+            The text you want to use as the title of your new note.
+
+        </dd>
+        <dt>body <span class="property-type">string</span></dt>
+        <dd>The markdown you want to use as the body of your note. </dd>
+    </dl>
+
+
+    <h3>Outputs</h3>
+    
+    <dl class="message-properties">
+        <dt>msg.payload <span class="property-type">object</span></dt>
+        <dd>The json object relating to the newly created note (imporantly including its <code>id</code> attribute).</dd>
+    </dl>
+    
+    <h3>Detail</h3>
+    <p>This node uses the Joplin post endpoints as documented <a href="https://joplinapp.org/api/#post-notes" target="_blank">here</a>.</p>
+    <p>Any subproperties of <code>msg.payload</code> are 
+        passed directly through as fields in the request allowing you to programmatically create notes by setting 
+        <code>msg.payload.title</code> and <code>msg.payload.body</code>.
+            You may also set other metadata fields on the note programatically. Supported fields are documented 
+            <a href="https://joplinapp.org/api/#properties" target="_blank">here</a>.
+        </p>
 </script>
 

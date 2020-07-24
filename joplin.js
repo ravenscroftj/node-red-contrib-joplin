@@ -1,6 +1,11 @@
 const Axios = require('axios');
 
 module.exports = function(RED) {
+    /**
+     * JoplinCreateNode for creating new joplin resources via API
+     * 
+     * @param {object} config 
+     */
     function JoplinCreateNode(config) {
         RED.nodes.createNode(this,config);
 
@@ -15,10 +20,13 @@ module.exports = function(RED) {
         node.on('input', async function(msg) {
 
             let {title, noteBody} = this;
-            let data = {title,noteBody, ...msg.payload};
+            let data = {title,body:noteBody, ...msg.payload};
+
+            node.error(data);
 
             try{
-                const response = await Axios.post(`http://${hostname}:${port}/notes`,{data})
+                const response = await Axios.post(`http://${hostname}:${port}/notes`,data,{params:{token:apiKey}});
+
                 msg.payload = response.data;
                 node.send(msg);
             }catch(error){
@@ -29,10 +37,16 @@ module.exports = function(RED) {
     }
     RED.nodes.registerType("joplin-create",JoplinCreateNode);
 
+    /**
+     * JoplinSearchNode for finding joplin resources via the API
+     * 
+     * @param {object} config 
+     */
     function JoplinSearchNode(config) {
         RED.nodes.createNode(this,config);
 
         this.query= config.query;
+        this.fields = config.fields;
         this.server = RED.nodes.getNode(config.server);
     
         const token = this.server.credentials.apiKey;
@@ -41,9 +55,9 @@ module.exports = function(RED) {
         var node = this;
         node.on('input', async function(msg) {
 
-            let {query} = this;
+            let {query,fields} = this;
 
-            let params = {query,token, ...msg.payload};
+            let params = {query,token,fields, ...msg.payload};
 
             if(!params.query){
                 node.error("You must set a query either in the node options or via msg.payload.");
@@ -63,11 +77,15 @@ module.exports = function(RED) {
     }
     RED.nodes.registerType("joplin-search",JoplinSearchNode);
     
-
+    /**
+     * JoplinGetResourceNode for retrieving specific resources by ID from the API
+     * 
+     * @param {object} config 
+     */
     function JoplinGetResourceNode(config) {
         RED.nodes.createNode(this,config);
 
-        this.id= config.id;
+        this.resourceId= config.resourceId;
         this.resourceType = config.resourceType;
         this.fields = config.fields;
         this.server = RED.nodes.getNode(config.server);
@@ -79,7 +97,7 @@ module.exports = function(RED) {
         node.on('input', async function(msg) {
 
 
-            const id = msg.payload.id ? msg.payload.id : this.id;
+            const id = msg.payload.resourceId ? msg.payload.resourceId : this.resourceId;
             const type = msg.payload.resourceType ? msg.payload.resourceType: this.resourceType; 
             const fields = msg.payload.fields ? msg.payload.fields : this.fields;
 
@@ -96,6 +114,50 @@ module.exports = function(RED) {
     }
     RED.nodes.registerType("joplin-get",JoplinGetResourceNode);
 
+    /**
+     * JoplinGetResourceNode for retrieving specific resources by ID from the API
+     * 
+     * @param {object} config 
+     */
+    function JoplinGetByParentResourceNode(config) {
+        RED.nodes.createNode(this,config);
+
+        this.resourceParentId = config.resourceParentId;
+        this.resourceParentType = config.resourceParentType;
+        this.resourceType = config.resourceType;
+
+        //this.fields = config.fields;
+        this.server = RED.nodes.getNode(config.server);
+    
+        const token = this.server.credentials.apiKey;
+        const {hostname, port} = this.server;
+
+        var node = this;
+        node.on('input', async function(msg) {
+
+
+            const id = msg.payload.resourceParentId  ? msg.payload.resourceParentId  : this.resourceParentId;
+            const parentType = msg.payload.resourceParentType ? msg.payload.resourceParentType: this.resourceParentType; 
+            const type = msg.payload.resourceType ? msg.payload.resourceType: this.resourceType; 
+            //const fields = msg.payload.fields ? msg.payload.fields : this.fields;
+
+            try{
+                const response = await Axios.get(`http://${hostname}:${port}/${parentType}/${id}/${type}`, {"params":{token}});
+                msg.payload = response.data;
+                node.send(msg);
+            }catch(error){
+                node.error(error);
+            }
+
+        });
+    }
+    RED.nodes.registerType("joplin-getby-parent",JoplinGetByParentResourceNode);
+
+    /**
+     * JoplinConfigNode use to define location of specific joplin servers (and credentials)
+     * 
+     * @param {object} n 
+     */
     function JoplinConfigNode(n) {
         RED.nodes.createNode(this,n);
         this.hostname = n.hostname;
