@@ -22,7 +22,6 @@ module.exports = function(RED) {
             let {title, noteBody} = this;
             let data = {title,body:noteBody, ...msg.payload};
 
-            node.error(data);
 
             try{
                 const response = await Axios.post(`http://${hostname}:${port}/notes`,data,{params:{token:apiKey}});
@@ -168,5 +167,24 @@ module.exports = function(RED) {
         credentials:{
             apiKey: {type:"text"}
         }
+    });
+
+    const listNotebooks = async (server) => {
+
+        const response = await Axios.get(`http://${server.hostname}:${server.port}/folders`, {params:{token:server.credentials.apiKey}});
+        console.log(response.data);
+        return response.data
+    };
+
+    RED.httpAdmin.get('/joplin/:cmd/:config_node_id', async (req, res) => {
+
+        var configNode = RED.nodes.getNode(req.params.config_node_id);
+
+        switch(req.params.cmd){
+            case 'list-notebooks':
+                res.json(await listNotebooks(configNode));
+
+        }
+
     });
 }

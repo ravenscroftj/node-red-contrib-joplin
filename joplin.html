@@ -312,14 +312,73 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
 
 
 <script type="text/javascript">
+(function(){
 
-RED.nodes.registerType('joplin-create',{
+    function notebook2TreeList(notebooks) {
+        var result = [];
+
+        for (const notebook of notebooks) {
+            notebook.label = notebook.title;
+            if(notebook.children){
+                notebook.children = notebook2TreeList(notebook.children);
+            }
+            result.push(notebook);
+        }
+
+        return result;
+    }
+
+    function getNotebooks(configId){
+        return new Promise( (resolve, reject) => {
+            
+            if (!configId){
+                reject({message:"no server defined"});
+            }
+
+            $.get(`/joplin/list-notebooks/${configId}`)
+            .done((data)=>{
+                // translate notebook objects to treelist child objects
+                console.log(data);
+                resolve(notebook2TreeList(data))
+            })
+            .fail((jqXHR, status, err) => reject(err));
+        });
+    }
+
+    var treeList;
+
+    function getNodeById(nodes, id){
+
+        if(!nodes){
+            return null;
+        }
+
+        for (const node of nodes) {
+            if (node.id == id){
+                return node;
+            }
+
+            if(node.children){
+                childResult = getNodeById(node.children, id);
+
+                if(childResult){
+                    return childResult;
+                }
+            }
+        }
+
+        return null;
+    }
+
+
+    RED.nodes.registerType('joplin-create',{
         category: 'Joplin',
         color: '#a6bbcf',
         defaults: {
             server: {value:"", type:"joplin-config"},
             title: {value:""},
             noteBody: {value:""},
+            parentId: {value:""}
         },
         inputs:1,
         outputs:1,
@@ -328,7 +387,58 @@ RED.nodes.registerType('joplin-create',{
             return this.name||"joplin-create";
         },
         oneditprepare: function(){
-            console.log(this.noteBody);
+
+            // if connection is set then init notebooks
+            if(this.server){
+                treeList = $("<div>")
+                    .css({width: "100%", height: "100%"})
+                    .appendTo(".node-input-parentId-row")
+                    .treeList({})
+                    .on('treelistselect', (evt, item)=>{
+                        
+                        if(this.parentId){
+                            oldParentNode = getNodeById(treeList.treeList('data'), this.parentId);
+
+                            if(oldParentNode){
+                                oldParentNode.selected = false;
+                            }
+                        }
+
+                        item.selected = true;
+
+                        this.parentId = item.id;
+
+                    });
+
+                getNotebooks(this.server).then((notebooks)=>{
+
+                    if(this.parentId){
+                        console.log(this.parentId);
+                        var parentNode = getNodeById(notebooks, this.parentId);
+
+                        if (parentNode){
+                            parentNode.selected = true;
+                        }
+                        
+                        
+                        var node = parentNode;
+
+                        for(var node=parentNode; node.parent_id; node=getNodeById(node.parentId) != null) {
+                            node.expanded = true;
+                        }
+
+                        treeList.show(this.id);
+                    }
+
+                    treeList.treeList('data', notebooks);
+                    //treeList.show(this.parentId);
+                })
+                
+
+            }else{
+                $("#node-input-parentId").prop('disabled',false);
+            }
+            // set up note body editor
             this.editor = RED.editor.createEditor({
                 id: 'node-input-noteBody-editor',
                 mode: 'ace/mode/text',
@@ -336,17 +446,20 @@ RED.nodes.registerType('joplin-create',{
             });
         },
         oneditsave: function(){
-            //$('#node-input-nodeBody').val(this.editor.getValue());
+
+            // delete body editor
             this.noteBody = this.editor.getValue();
             this.editor.destroy();
             delete this.editor;
+
+
         },
         oneditcancel: function() {
             this.editor.destroy();
             delete this.editor;
         }
     });
-    
+})();
 </script>
 
 
@@ -364,8 +477,11 @@ RED.nodes.registerType('joplin-create',{
 
     <div class="form-row">
         <label for="node-input-noteBody-editor"><i class="icon-tag"></i> Note body</label>
-        <div style="height: 250px; min-height:150px;" class="node-text-editor" id="node-input-noteBody-editor"></div>
+        <div style="height: 100px; min-height:50px;" class="node-text-editor" id="node-input-noteBody-editor"></div>
+    </div>
 
+    <div style="height: 250px; min-height:150px;" class="form-row node-input-parentId-row">
+        <label><i class="icon-tag"></i> Parent Notebook</label>
     </div>
 </script>
 
