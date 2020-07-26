@@ -10,5 +10,5 @@ This allows you to automate tasks in your joplin notebook setup - the possibilit
  - [X] Add 'get by container' nodes
  - [X] Add update node
  - [X] Add delete node
- - [ ] Add download attachment node
+ - [X] Add download attachment node
  - [ ] Write a tutorial
