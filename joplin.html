@@ -338,7 +338,6 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
             $.get(`/joplin/list-notebooks/${configId}`)
             .done((data)=>{
                 // translate notebook objects to treelist child objects
-                console.log(data);
                 resolve(notebook2TreeList(data))
             })
             .fail((jqXHR, status, err) => reject(err));
@@ -346,6 +345,7 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
     }
 
     var treeList;
+    var selectedParent;
 
     function getNodeById(nodes, id){
 
@@ -378,14 +378,16 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
             server: {value:"", type:"joplin-config"},
             title: {value:""},
             noteBody: {value:""},
+            parentName: {value:""},
             parentId: {value:""}
         },
         inputs:1,
         outputs:1,
         icon: "joplin512.png",
         label: function() {
-            return this.name||"joplin-create";
+            return this.parentName? `Create joplin note in ${this.parentName}` : "Create joplin note";
         },
+
         oneditprepare: function(){
 
             // if connection is set then init notebooks
@@ -396,38 +398,39 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
                     .treeList({})
                     .on('treelistselect', (evt, item)=>{
                         
-                        if(this.parentId){
-                            oldParentNode = getNodeById(treeList.treeList('data'), this.parentId);
+                        if(item){
 
-                            if(oldParentNode){
-                                oldParentNode.selected = false;
+                            if(!selectedParent && this.parentId){
+                                selectedParent = getNodeById(treeList.treeList('data'), this.parentId);
                             }
+
+                            if(selectedParent){
+                                selectedParent.selected=false;
+                            }
+
+                            item.selected = true;
+                            selectedParent = item;
+                        
                         }
-
-                        item.selected = true;
-
-                        this.parentId = item.id;
 
                     });
 
                 getNotebooks(this.server).then((notebooks)=>{
 
                     if(this.parentId){
-                        console.log(this.parentId);
                         var parentNode = getNodeById(notebooks, this.parentId);
 
                         if (parentNode){
                             parentNode.selected = true;
                         }
                         
-                        
                         var node = parentNode;
 
-                        for(var node=parentNode; node.parent_id; node=getNodeById(node.parentId) != null) {
-                            node.expanded = true;
+                        for(var node=parentNode; node != null; node=getNodeById(notebooks, node.parent_id)) {
+                            node.expanded=true;
                         }
 
-                        treeList.show(this.id);
+                        treeList.show(this.parentId);
                     }
 
                     treeList.treeList('data', notebooks);
@@ -452,7 +455,11 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
             this.editor.destroy();
             delete this.editor;
 
-
+            //store parent notebook
+            if(selectedParent){
+                this.parentId = selectedParent.id;
+                this.parentName = selectedParent.title;
+            }
         },
         oneditcancel: function() {
             this.editor.destroy();
