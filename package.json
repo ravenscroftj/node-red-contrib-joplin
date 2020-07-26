@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-joplin",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Nodes for interacting with Joplin API",
   "main": "index.js",
   "repository": {
@@ -8,8 +8,7 @@
     "url": "git+https://github.com/ravenscroftj/node-red-contrib-joplin.git"
   },
   "keywords": [
-    "node",
-    "red",
+    "node-red",
     "joplin",
     "api"
   ],
