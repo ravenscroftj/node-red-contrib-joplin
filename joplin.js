@@ -160,6 +160,37 @@ module.exports = function(RED) {
     RED.nodes.registerType("joplin-search",JoplinSearchNode);
     
     /**
+     * JoplinGetAttachmentNode for downloading file attachments from joplin
+     * 
+     * @param {object} config 
+     */
+    function JoplinGetAttachmentNode(config) {
+        RED.nodes.createNode(this,config);
+
+        this.resourceId= config.resourceId;
+        this.server = RED.nodes.getNode(config.server);
+    
+        const token = this.server.credentials.apiKey;
+        const {hostname, port} = this.server;
+
+        var node = this;
+        node.on('input', async function(msg) {
+
+            const id = msg.payload.resourceId || this.resourceId;
+
+            try{
+                const response = await Axios.get(`http://${hostname}:${port}/resources/${id}/file`, {"params":{token}, 'responseType':'stream'});
+                msg.payload = response.data;
+                node.send(msg);
+            }catch(error){
+                node.error(error);
+            }
+
+        });
+    }
+    RED.nodes.registerType("joplin-get-attachment",JoplinGetAttachmentNode);
+
+    /**
      * JoplinGetResourceNode for retrieving specific resources by ID from the API
      * 
      * @param {object} config 

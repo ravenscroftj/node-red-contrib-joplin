@@ -314,6 +314,68 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
 
 
 <!--------------------------------------------------
+ * Joplin Get Attachment node - for retrieval of joplin file attachments
+ *
+ *
+---------------------------------------------------->
+
+<script type="text/javascript">
+
+    RED.nodes.registerType('joplin-get-attachment',{
+        category: 'Joplin',
+        color: '#a6bbcf',
+        defaults: {
+            server: {value:"", type:"joplin-config"},
+            resourceId: {value:""},
+            resourceType: {value:"notes"},
+        },
+        inputs:1,
+        outputs:1,
+        icon: "joplin512.png",
+        label: function() {
+            return this.name||"joplin-get-attachment";
+        },
+    });
+
+</script>
+
+<script type="text/html" data-template-name="joplin-get-attachment">
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-tag"></i> Joplin API Location</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-resourceId"><i class="icon-tag"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="ID">
+    </div>
+
+</script>
+
+<script type="text/html" data-help-name="joplin-get-attachment">
+    <p>Fetch a file attachment by its ID from the Joplin REST API</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>server <span class="property-type">joplin-config</span></dt>
+        <dd>The Joplin REST API server to retrieve the resource from</dd>
+        <dt>resourceId <span class="property-type">string</span></dt>
+    </dl>
+    
+    <h3>Outputs</h3>
+    
+    <dl class="message-properties">
+        <dt>msg.payload <span class="property-type">object</span></dt>
+        <dd>A javascript <code>stream</code> object containing the full contents of the attachment.</dd>   
+    </dl>
+    
+    <h3>Detail</h3>
+    <p>This node uses the Joplin get resource file endpoint as documented <a href="https://joplinapp.org/api/#get-resources-id-file" target="_blank">here</a>.</p>
+    
+</script>
+
+
+<!--------------------------------------------------
  * Joplin GET node - for retrieval of specific resources by ID
  *
  *
