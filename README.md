@@ -8,6 +8,7 @@ This allows you to automate tasks in your joplin notebook setup - the possibilit
 
  - [X] Document node behaviours
  - [X] Add 'get by container' nodes
- - [ ] Add update and delete behaviours
+ - [X] Add update node
+ - [X] Add delete node
  - [ ] Add download attachment node
  - [ ] Write a tutorial

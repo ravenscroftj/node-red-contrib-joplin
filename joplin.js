@@ -38,6 +38,45 @@ module.exports = function(RED) {
     RED.nodes.registerType("joplin-create",JoplinCreateNode);
 
     /**
+     * JoplinDeleteNode for removing existing joplin resources via API
+     * 
+     * @param {object} config 
+     */
+    function JoplinDeleteNode(config) {
+        RED.nodes.createNode(this,config);
+
+        this.resourceId  = config.resourceId;
+        this.resourceType = config.resourceType;
+        this.server = RED.nodes.getNode(config.server);
+    
+        const apiKey = this.server.credentials.apiKey;
+        const {hostname, port} = this.server;
+
+        var node = this;
+        node.on('input', async function(msg) {
+
+            let resourceType = msg.payload.resourceType || this.resourceType;
+            const id = msg.payload.resourceId || this.resourceId;
+
+            if(!id){
+                node.error("No ID was provided for Joplin resource delete");
+                return;
+            }
+
+            try{
+                const response = await Axios.delete(`http://${hostname}:${port}/${resourceType}/${id}`,{params:{token:apiKey}});
+
+                msg.payload = response.data;
+                node.send(msg);
+            }catch(error){
+                node.error(error);
+            }
+            
+        });
+    }
+    RED.nodes.registerType("joplin-delete",JoplinDeleteNode);
+
+    /**
      * JoplinUpdateNode for updating existing joplin resources via API
      * 
      * @param {object} config 
@@ -45,6 +84,7 @@ module.exports = function(RED) {
     function JoplinUpdateNode(config) {
         RED.nodes.createNode(this,config);
 
+        this.resourceId  = config.resourceId;
         this.noteBody = config.noteBody;
         this.title = config.title;
         this.server = RED.nodes.getNode(config.server);
@@ -57,10 +97,16 @@ module.exports = function(RED) {
 
             let {title, noteBody} = this;
             let data = {title,body:noteBody, ...msg.payload};
+            let resourceType = msg.payload.resourceType || "notes";
+            const id = msg.payload.resourceId || this.resourceId;
 
+            if(!id){
+                node.error("No ID was provided for Joplin resource update");
+                return;
+            }
 
             try{
-                const response = await Axios.post(`http://${hostname}:${port}/notes`,data,{params:{token:apiKey}});
+                const response = await Axios.put(`http://${hostname}:${port}/${resourceType}/${id}`,data,{params:{token:apiKey}});
 
                 msg.payload = response.data;
                 node.send(msg);

@@ -140,8 +140,27 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
         defaults: {
             server: {value:"", type:"joplin-config"},
             resourceId: {value:""},
+            resourceType: {value:"notes"},
             title: {value:""},
             noteBody: {value:""},
+        },
+        oneditprepare: function(){
+            // set up note body editor
+            this.editor = RED.editor.createEditor({
+                id: 'node-input-noteBody-editor',
+                mode: 'ace/mode/text',
+                value: this.noteBody 
+            });
+        },
+        oneditcancel: function() {
+            this.editor.destroy();
+            delete this.editor;
+        },
+        oneditsave:function(){
+            // delete body editor
+            this.noteBody = this.editor.getValue();
+            this.editor.destroy();
+            delete this.editor;
         },
         inputs:1,
         outputs:1,
@@ -165,6 +184,11 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
     </div>
 
     <div class="form-row">
+        <label for="node-input-resourceType"><i class="icon-tag"></i> Resource Type</label>
+        <input type="text" id="node-input-resourceType" placeholder="Name">
+    </div>
+
+    <div class="form-row">
         <label for="node-input-title"><i class="icon-tag"></i> Note title</label>
         <input type="text" id="node-input-title" placeholder="Name">
     </div>
@@ -182,25 +206,98 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
     <h3>Inputs</h3>
     <dl class="message-properties">
         <dt>server <span class="property-type">joplin-config</span></dt>
-        <dd>The Joplin REST API server to retrieve the resource from</dd>
+        <dd>The Joplin REST API server to send the updated resource to</dd>
         <dt>resourceId <span class="property-type">string</span></dt>
-        <dd>Resource ID to retrieve. The node first checks <code>msg.payload.resourceId</code> and then tries 
+        <dd>Resource ID to update. The node first checks <code>msg.payload.resourceId</code> and then tries 
         the ID defined in the editor interface. If neither is provided (i.e. there's no resource ID set at all) then an error is produced.</dd>
         <dt>resourceType <span class="property-type">string</span></dt>
-        <dd>The type of resource to retrieve. E.g. you may be looking for a <code>tag</code> or a <code>resource</code> (file attachment). 
-            The node first checks <code>msg.payload.resourceType</code> and then uses the editor value. Default value is <code>notes</code>.
+        <dd>The type of resource to delete.The node first checks <code>msg.payload.resourceType</code> and then uses the editor value. Default value is <code>notes</code>.
             Supported resources are <code>notes</code>, <code>folders</code> (this is the internal name of notebook), <code>resources</code> (file attachments etc),
             and <code>tags</code>.
         </dd>
-        <dt>fields <span class="property-type">string</span></dt>
-        
-        <dd>A comma separated list of note fields that the returned object should contain.
-            The full list of properties each note may contain is provided <a target="_blank" href="https://joplinapp.org/api/#properties">here</a>.
-    
-            By default leaving this blank will return all note metadata but omit <code>body</code> which contains the markdown for the note.
-    
-            The node will prefer <code>msg.payload.fields</code> and then the value set in the editor.
+        <dt>title <span class="property-type">string</span></dt>
+        <dd>
+            The text you want to use as the updated title of your new note. Unchanged if left blank.
+
         </dd>
+        <dt>body <span class="property-type">string</span></dt>
+        <dd>The markdown you want to use as updated the body of your note. Unchanged if left blank. </dd>
+    </dl>
+    
+    <h3>Outputs</h3>
+    
+    <dl class="message-properties">
+        <dt>msg.payload <span class="property-type">object</span></dt>
+        <dd>A single object containing the updated resource in Joplin.</dd>   
+    </dl>
+    
+    <h3>Detail</h3>
+    <p>This node uses the Joplin put endpoints as documented <a href="https://joplinapp.org/api/" target="_blank">here</a> to update resources.</p>
+
+    <p>You can update any valid property of notes and resources (as listed <a href="https://joplinapp.org/api/#properties" target="_blank">here</a>) by passing them as subproperties of <code>msg.payload</code>.
+        For example you could move a note by setting <code>msg.payload.parent_id</code>. </p>
+</script>
+
+
+<!--------------------------------------------------
+ * Joplin DELETE node - for deletion of specific resources by ID
+ *
+ *
+---------------------------------------------------->
+
+<script type="text/javascript">
+
+    RED.nodes.registerType('joplin-delete',{
+        category: 'Joplin',
+        color: '#a6bbcf',
+        defaults: {
+            server: {value:"", type:"joplin-config"},
+            resourceId: {value:""},
+            resourceType: {value:"notes"},
+        },
+        inputs:1,
+        outputs:1,
+        icon: "joplin512.png",
+        label: function() {
+            return this.name||"joplin-delete";
+        },
+    });
+
+</script>
+
+<script type="text/html" data-template-name="joplin-delete">
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-tag"></i> Joplin API Location</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-resourceId"><i class="icon-tag"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="ID">
+    </div>
+
+
+    <div class="form-row">
+        <label for="node-input-resourceType"><i class="icon-tag"></i> Resource Type</label>
+        <input type="text" id="node-input-resourceType" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="joplin-delete">
+    <p>Remove a Joplin resource by its ID from the REST API</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>server <span class="property-type">joplin-config</span></dt>
+        <dd>The Joplin REST API server to retrieve the resource from</dd>
+        <dt>resourceId <span class="property-type">string</span></dt>
+        <dt>resourceType <span class="property-type">string</span></dt>
+        <dd>The type of resource to delete.The node first checks <code>msg.payload.resourceType</code> and then uses the editor value. Default value is <code>notes</code>.
+            Supported resources are <code>notes</code>, <code>folders</code> (this is the internal name of notebook), <code>resources</code> (file attachments etc),
+            and <code>tags</code>.
+        </dd>
+        <dd>Resource ID to delete from Joplin. The node first checks <code>msg.payload.resourceId</code> and then tries 
+        the ID defined in the editor interface. If neither is provided (i.e. there's no resource ID set at all) then an error is produced.</dd>
     </dl>
     
     <h3>Outputs</h3>
@@ -211,9 +308,10 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
     </dl>
     
     <h3>Detail</h3>
-    <p>This node uses the Joplin get endpoints as documented <a href="https://joplinapp.org/api/" target="_blank">here</a> to retrieve objects from the joplin database.</p>
+    <p>This node uses the Joplin delete endpoints as documented <a href="https://joplinapp.org/api/" target="_blank">here</a> to remove objects from the joplin database.</p>
     
 </script>
+
 
 <!--------------------------------------------------
  * Joplin GET node - for retrieval of specific resources by ID
@@ -256,7 +354,7 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
     </div>
 
     <div class="form-row">
-        <label for="node-input-resourceType"><i class="icon-tag"></i> Resource ID</label>
+        <label for="node-input-resourceType"><i class="icon-tag"></i> Resource Type</label>
         <input type="text" id="node-input-resourceType" placeholder="Name">
     </div>
 
