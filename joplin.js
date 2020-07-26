@@ -11,6 +11,42 @@ module.exports = function(RED) {
 
         this.noteBody = config.noteBody;
         this.title = config.title;
+        this.parentId = config.parentId;
+        this.server = RED.nodes.getNode(config.server);
+    
+        const apiKey = this.server.credentials.apiKey;
+        const {hostname, port} = this.server;
+
+        var node = this;
+        node.on('input', async function(msg) {
+
+            let {title, noteBody, parentId} = this;
+            let data = {title,body:noteBody, parent_id: parentId, ...msg.payload};
+
+
+            try{
+                const response = await Axios.post(`http://${hostname}:${port}/notes`,data,{params:{token:apiKey}});
+
+                msg.payload = response.data;
+                node.send(msg);
+            }catch(error){
+                node.error(error);
+            }
+            
+        });
+    }
+    RED.nodes.registerType("joplin-create",JoplinCreateNode);
+
+    /**
+     * JoplinUpdateNode for updating existing joplin resources via API
+     * 
+     * @param {object} config 
+     */
+    function JoplinUpdateNode(config) {
+        RED.nodes.createNode(this,config);
+
+        this.noteBody = config.noteBody;
+        this.title = config.title;
         this.server = RED.nodes.getNode(config.server);
     
         const apiKey = this.server.credentials.apiKey;
@@ -34,7 +70,8 @@ module.exports = function(RED) {
             
         });
     }
-    RED.nodes.registerType("joplin-create",JoplinCreateNode);
+    RED.nodes.registerType("joplin-update",JoplinUpdateNode);
+
 
     /**
      * JoplinSearchNode for finding joplin resources via the API

@@ -43,6 +43,14 @@
     <p><b>API Token</b></p> is the long token that you copy and paste from Joplin into the web clipper browser plugin to allow it to communicate with your joplin app. This can be found in the web clipper settings under <i>Advanced options</i><p/>
 </script>
 
+
+<!--------------------------------------------------
+ * Joplin search node - for finding resources using text search
+ *
+ *
+---------------------------------------------------->
+
+
 <script type="text/javascript">
 
     RED.nodes.registerType('joplin-search',{
@@ -114,6 +122,98 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
 
 </script>
 
+
+
+
+<!--------------------------------------------------
+ * Joplin update node - for changing specific resources by ID
+ *
+ *
+---------------------------------------------------->
+
+
+<script type="text/javascript">
+
+    RED.nodes.registerType('joplin-update',{
+        category: 'Joplin',
+        color: '#a6bbcf',
+        defaults: {
+            server: {value:"", type:"joplin-config"},
+            resourceId: {value:""},
+            title: {value:""},
+            noteBody: {value:""},
+        },
+        inputs:1,
+        outputs:1,
+        icon: "joplin512.png",
+        label: function() {
+            return this.name||"joplin update";
+        },
+    });
+
+</script>
+
+<script type="text/html" data-template-name="joplin-update">
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-tag"></i> Joplin API Location</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-resourceId"><i class="icon-tag"></i> Resource ID</label>
+        <input type="text" id="node-input-resourceId" placeholder="ID">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-title"><i class="icon-tag"></i> Note title</label>
+        <input type="text" id="node-input-title" placeholder="Name">
+    </div>
+
+
+    <div class="form-row">
+        <label for="node-input-noteBody-editor"><i class="icon-tag"></i> Note body</label>
+        <div style="height: 100px; min-height:50px;" class="node-text-editor" id="node-input-noteBody-editor"></div>
+    </div>
+</script>
+
+<script type="text/html" data-help-name="joplin-update">
+    <p>Update an existing Joplin resource by its ID via the REST API</p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>server <span class="property-type">joplin-config</span></dt>
+        <dd>The Joplin REST API server to retrieve the resource from</dd>
+        <dt>resourceId <span class="property-type">string</span></dt>
+        <dd>Resource ID to retrieve. The node first checks <code>msg.payload.resourceId</code> and then tries 
+        the ID defined in the editor interface. If neither is provided (i.e. there's no resource ID set at all) then an error is produced.</dd>
+        <dt>resourceType <span class="property-type">string</span></dt>
+        <dd>The type of resource to retrieve. E.g. you may be looking for a <code>tag</code> or a <code>resource</code> (file attachment). 
+            The node first checks <code>msg.payload.resourceType</code> and then uses the editor value. Default value is <code>notes</code>.
+            Supported resources are <code>notes</code>, <code>folders</code> (this is the internal name of notebook), <code>resources</code> (file attachments etc),
+            and <code>tags</code>.
+        </dd>
+        <dt>fields <span class="property-type">string</span></dt>
+        
+        <dd>A comma separated list of note fields that the returned object should contain.
+            The full list of properties each note may contain is provided <a target="_blank" href="https://joplinapp.org/api/#properties">here</a>.
+    
+            By default leaving this blank will return all note metadata but omit <code>body</code> which contains the markdown for the note.
+    
+            The node will prefer <code>msg.payload.fields</code> and then the value set in the editor.
+        </dd>
+    </dl>
+    
+    <h3>Outputs</h3>
+    
+    <dl class="message-properties">
+        <dt>msg.payload <span class="property-type">object</span></dt>
+        <dd>A single object containing the resource that has the matching ID.</dd>   
+    </dl>
+    
+    <h3>Detail</h3>
+    <p>This node uses the Joplin get endpoints as documented <a href="https://joplinapp.org/api/" target="_blank">here</a> to retrieve objects from the joplin database.</p>
+    
+</script>
 
 <!--------------------------------------------------
  * Joplin GET node - for retrieval of specific resources by ID
@@ -415,6 +515,8 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
 
                     });
 
+
+
                 getNotebooks(this.server).then((notebooks)=>{
 
                     if(this.parentId){
@@ -435,6 +537,9 @@ Searching behaviour (i.e. allowed values for query) is fully documented <a href=
 
                     treeList.treeList('data', notebooks);
                     //treeList.show(this.parentId);
+
+                    // first time initialisation of selectedParent
+                    selectedParent = getNodeById(treeList.treeList('data'), this.parentId);
                 })
                 
 
